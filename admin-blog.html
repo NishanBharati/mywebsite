@@ -206,7 +206,25 @@
   <script src="lib/jquery/jquery.min.js"></script>
   <script src="lib/bootstrap/js/bootstrap.min.js"></script>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
   <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAEdMXnG78-2qFScgn-sPTjOK-q7nMKVYk",
+      authDomain: "blogs-8ca88.firebaseapp.com",
+      projectId: "blogs-8ca88",
+      storageBucket: "blogs-8ca88.firebasestorage.app",
+      messagingSenderId: "1034724529544",
+      appId: "1:1034724529544:web:54918ded269f8b8dc9163d"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
     // Admin password (in production, use proper authentication)
     const ADMIN_PASSWORD = '9813796949';
 
@@ -243,93 +261,107 @@
     document.getElementById('blog-date').valueAsDate = new Date();
 
     // Blog form handler
-    document.getElementById('blog-form').addEventListener('submit', function(e) {
+    document.getElementById('blog-form').addEventListener('submit', async function(e) {
       e.preventDefault();
       
       const blogId = document.getElementById('blog-id').value;
       const blog = {
-        id: blogId || Date.now().toString(),
         title: document.getElementById('blog-title').value,
         author: document.getElementById('blog-author').value,
         date: document.getElementById('blog-date').value,
         image: document.getElementById('blog-image').value || 'img/post-1.jpg',
-        content: document.getElementById('blog-content').value
+        content: document.getElementById('blog-content').value,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
       };
 
-      let blogs = JSON.parse(localStorage.getItem('blogs') || '[]');
-      
-      if (blogId) {
-        // Update existing blog
-        blogs = blogs.map(b => b.id === blogId ? blog : b);
-        alert('Blog updated successfully!');
-      } else {
-        // Add new blog
-        blogs.push(blog);
-        alert('Blog published successfully!');
+      try {
+        if (blogId) {
+          // Update existing blog
+          await db.collection('blogs').doc(blogId).update(blog);
+          alert('Blog updated successfully!');
+        } else {
+          // Add new blog
+          await db.collection('blogs').add(blog);
+          alert('Blog published successfully!');
+        }
+        
+        resetForm();
+        loadBlogsForAdmin();
+      } catch (error) {
+        console.error('Error saving blog:', error);
+        alert('Error saving blog. Please try again.');
       }
-
-      localStorage.setItem('blogs', JSON.stringify(blogs));
-      resetForm();
-      loadBlogsForAdmin();
     });
 
-    function loadBlogsForAdmin() {
-      const blogs = JSON.parse(localStorage.getItem('blogs') || '[]');
-      const blogsList = document.getElementById('blogs-list');
+    async function loadBlogsForAdmin() {
+      try {
+        const querySnapshot = await db.collection('blogs').orderBy('date', 'desc').get();
+        const blogsList = document.getElementById('blogs-list');
 
-      if (blogs.length === 0) {
-        blogsList.innerHTML = '<p class="text-center text-muted">No blogs yet</p>';
-        return;
-      }
+        if (querySnapshot.empty) {
+          blogsList.innerHTML = '<p class="text-center text-muted">No blogs yet</p>';
+          return;
+        }
 
-      // Sort by date (newest first)
-      blogs.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      blogsList.innerHTML = blogs.map(blog => `
-        <div class="blog-item">
-          <div class="blog-info">
-            <h5>${blog.title}</h5>
-            <p><i class="fa fa-calendar"></i> ${new Date(blog.date).toLocaleDateString()} | <i class="fa fa-user"></i> ${blog.author}</p>
-          </div>
-          <div class="blog-actions">
-            <button class="btn btn-sm btn-info" onclick="editBlog('${blog.id}')">
-              <i class="fa fa-edit"></i> Edit
-            </button>
-            <button class="btn btn-sm btn-danger" onclick="deleteBlog('${blog.id}')">
-              <i class="fa fa-trash"></i> Delete
-            </button>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function editBlog(id) {
-      const blogs = JSON.parse(localStorage.getItem('blogs') || '[]');
-      const blog = blogs.find(b => b.id === id);
-      
-      if (blog) {
-        document.getElementById('blog-id').value = blog.id;
-        document.getElementById('blog-title').value = blog.title;
-        document.getElementById('blog-author').value = blog.author;
-        document.getElementById('blog-date').value = blog.date;
-        document.getElementById('blog-image').value = blog.image !== 'img/post-1.jpg' ? blog.image : '';
-        document.getElementById('blog-content').value = blog.content;
+        const blogsHTML = querySnapshot.docs.map(doc => {
+          const blog = doc.data();
+          return `
+            <div class="blog-item">
+              <div class="blog-info">
+                <h5>${blog.title}</h5>
+                <p><i class="fa fa-calendar"></i> ${new Date(blog.date).toLocaleDateString()} | <i class="fa fa-user"></i> ${blog.author}</p>
+              </div>
+              <div class="blog-actions">
+                <button class="btn btn-sm btn-info" onclick="editBlog('${doc.id}')">
+                  <i class="fa fa-edit"></i> Edit
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteBlog('${doc.id}')">
+                  <i class="fa fa-trash"></i> Delete
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
         
-        document.getElementById('form-title').textContent = 'Edit Blog';
-        document.getElementById('submit-btn-text').textContent = 'Update Blog';
-        
-        // Scroll to form
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        blogsList.innerHTML = blogsHTML;
+      } catch (error) {
+        console.error('Error loading blogs:', error);
       }
     }
 
-    function deleteBlog(id) {
+    async function editBlog(id) {
+      try {
+        const doc = await db.collection('blogs').doc(id).get();
+        if (doc.exists) {
+          const blog = doc.data();
+          document.getElementById('blog-id').value = id;
+          document.getElementById('blog-title').value = blog.title;
+          document.getElementById('blog-author').value = blog.author;
+          document.getElementById('blog-date').value = blog.date;
+          document.getElementById('blog-image').value = blog.image !== 'img/post-1.jpg' ? blog.image : '';
+          document.getElementById('blog-content').value = blog.content;
+          
+          document.getElementById('form-title').textContent = 'Edit Blog';
+          document.getElementById('submit-btn-text').textContent = 'Update Blog';
+          
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      } catch (error) {
+        console.error('Error loading blog:', error);
+        alert('Error loading blog for editing.');
+      }
+    }
+
+    async function deleteBlog(id) {
       if (confirm('Are you sure you want to delete this blog?')) {
-        let blogs = JSON.parse(localStorage.getItem('blogs') || '[]');
-        blogs = blogs.filter(b => b.id !== id);
-        localStorage.setItem('blogs', JSON.stringify(blogs));
-        loadBlogsForAdmin();
-        alert('Blog deleted successfully!');
+        try {
+          await db.collection('blogs').doc(id).delete();
+          loadBlogsForAdmin();
+          alert('Blog deleted successfully!');
+        } catch (error) {
+          console.error('Error deleting blog:', error);
+          alert('Error deleting blog. Please try again.');
+        }
       }
     }
 

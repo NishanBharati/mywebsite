@@ -180,41 +180,71 @@
   <!-- Template Main Javascript File -->
   <script src="js/main.js"></script>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
   <!-- Blog Loading Script -->
   <script>
-    // Load blogs from localStorage
-    function loadBlogs() {
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAEdMXnG78-2qFScgn-sPTjOK-q7nMKVYk",
+      authDomain: "blogs-8ca88.firebaseapp.com",
+      projectId: "blogs-8ca88",
+      storageBucket: "blogs-8ca88.firebasestorage.app",
+      messagingSenderId: "1034724529544",
+      appId: "1:1034724529544:web:54918ded269f8b8dc9163d"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Load blogs from Firebase
+    async function loadBlogs() {
       const blogsContainer = document.getElementById('blogs-container');
-      const blogs = JSON.parse(localStorage.getItem('blogs') || '[]');
       
-      if (blogs.length === 0) {
+      try {
+        const querySnapshot = await db.collection('blogs').orderBy('date', 'desc').get();
+        
+        if (querySnapshot.empty) {
+          blogsContainer.innerHTML = `
+            <div class="col-12 text-center">
+              <p style="color: #999; font-size: 18px; padding: 50px 0;">No blogs available yet. Check back soon!</p>
+            </div>
+          `;
+          return;
+        }
+
+        const blogsHTML = querySnapshot.docs.map(doc => {
+          const blog = doc.data();
+          return `
+            <div class="col-md-4">
+              <div class="card blog-card" onclick="window.location.href='blog-single.html?id=${doc.id}'">
+                <img src="${blog.image || 'img/post-1.jpg'}" alt="${blog.title}" class="blog-thumbnail">
+                <div class="card-body">
+                  <h5 class="card-title">${blog.title}</h5>
+                  <div class="blog-meta">
+                    <i class="fa fa-calendar"></i> ${new Date(blog.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    <span style="margin-left: 15px;"><i class="fa fa-user"></i> ${blog.author || 'Admin'}</span>
+                  </div>
+                  <p class="blog-excerpt">${blog.excerpt || (blog.content ? blog.content.substring(0, 150) + '...' : '')}</p>
+                  <a href="blog-single.html?id=${doc.id}" class="btn btn-primary btn-sm">Read More</a>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+        
+        blogsContainer.innerHTML = blogsHTML;
+      } catch (error) {
+        console.error('Error loading blogs:', error);
         blogsContainer.innerHTML = `
           <div class="col-12 text-center">
-            <p style="color: #999; font-size: 18px; padding: 50px 0;">No blogs available yet. Check back soon!</p>
+            <p style="color: #f44336; font-size: 18px; padding: 50px 0;">Error loading blogs. Please try again later.</p>
           </div>
         `;
-        return;
       }
-
-      // Sort blogs by date (newest first)
-      blogs.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      blogsContainer.innerHTML = blogs.map(blog => `
-        <div class="col-md-4">
-          <div class="card blog-card" onclick="window.location.href='blog-single.html?id=${blog.id}'">
-            <img src="${blog.image || 'img/post-1.jpg'}" alt="${blog.title}" class="blog-thumbnail">
-            <div class="card-body">
-              <h5 class="card-title">${blog.title}</h5>
-              <div class="blog-meta">
-                <i class="fa fa-calendar"></i> ${new Date(blog.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                <span style="margin-left: 15px;"><i class="fa fa-user"></i> ${blog.author || 'Admin'}</span>
-              </div>
-              <p class="blog-excerpt">${blog.excerpt || blog.content.substring(0, 150) + '...'}</p>
-              <a href="blog-single.html?id=${blog.id}" class="btn btn-primary btn-sm">Read More</a>
-            </div>
-          </div>
-        </div>
-      `).join('');
     }
 
     // Load blogs when page loads

@@ -161,13 +161,31 @@
   <!-- Template Main Javascript File -->
   <script src="js/main.js"></script>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
   <!-- Blog Loading Script -->
   <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAEdMXnG78-2qFScgn-sPTjOK-q7nMKVYk",
+      authDomain: "blogs-8ca88.firebaseapp.com",
+      projectId: "blogs-8ca88",
+      storageBucket: "blogs-8ca88.firebasestorage.app",
+      messagingSenderId: "1034724529544",
+      appId: "1:1034724529544:web:54918ded269f8b8dc9163d"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
     // Get blog ID from URL
     const urlParams = new URLSearchParams(window.location.search);
     const blogId = urlParams.get('id');
 
-    function loadBlog() {
+    async function loadBlog() {
       if (!blogId) {
         document.getElementById('blog-content-area').innerHTML = `
           <div class="alert alert-warning">
@@ -178,52 +196,49 @@
         return;
       }
 
-      const blogs = JSON.parse(localStorage.getItem('blogs') || '[]');
-      const blog = blogs.find(b => b.id === blogId);
+      try {
+        const doc = await db.collection('blogs').doc(blogId).get();
 
-      if (!blog) {
+        if (!doc.exists) {
+          document.getElementById('blog-content-area').innerHTML = `
+            <div class="alert alert-danger">
+              <h4>Blog not found</h4>
+              <p>The requested blog post could not be found. <a href="blogs.html">Return to blog list</a></p>
+            </div>
+          `;
+          return;
+        }
+
+        const blog = doc.data();
+
+        // Update page title
+        document.title = blog.title + ' - Nishan';
+        
+        // Update breadcrumb
+        document.getElementById('breadcrumb-title').textContent = blog.title.substring(0, 30) + (blog.title.length > 30 ? '...' : '');
+
+        // Update blog content
+        document.getElementById('blog-image').src = blog.image || 'img/post-1.jpg';
+        document.getElementById('blog-image').alt = blog.title;
+        document.getElementById('blog-title').textContent = blog.title;
+        document.getElementById('blog-author').textContent = blog.author || 'Admin';
+        document.getElementById('blog-date').textContent = new Date(blog.date).toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+
+        // Format content with paragraphs
+        const contentHTML = blog.content.split('\n').map(para => 
+          para.trim() ? `<p>${para.trim()}</p>` : ''
+        ).join('');
+        document.getElementById('blog-content').innerHTML = contentHTML;
+      } catch (error) {
+        console.error('Error loading blog:', error);
         document.getElementById('blog-content-area').innerHTML = `
           <div class="alert alert-danger">
-            <h4>Blog not found</h4>
-            <p>The requested blog post could not be found. <a href="blogs.html">Return to blog list</a></p>
-          </div>
-        `;
-        return;
-      }
-
-      // Update page title
-      document.title = blog.title + ' - Nishan';
-      
-      // Update breadcrumb
-      document.getElementById('breadcrumb-title').textContent = blog.title.substring(0, 30) + (blog.title.length > 30 ? '...' : '');
-
-      // Update blog content
-      document.getElementById('blog-image').src = blog.image || 'img/post-1.jpg';
-      document.getElementById('blog-image').alt = blog.title;
-      document.getElementById('blog-title').textContent = blog.title;
-      document.getElementById('blog-author').textContent = blog.author || 'Admin';
-      document.getElementById('blog-date').textContent = new Date(blog.date).toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      });
-
-      // Format content with paragraphs
-      const contentHTML = blog.content.split('\n').map(para => 
-        para.trim() ? `<p>${para.trim()}</p>` : ''
-      ).join('');
-      document.getElementById('blog-content').innerHTML = contentHTML;
-
-      // Display tags if available
-      if (blog.tags && blog.tags.length > 0) {
-        document.getElementById('blog-tags-section').innerHTML = `
-          <div class="widget-tags">
-            <h5>Tags:</h5>
-            <div class="sidebar-content">
-              <ul>
-                ${blog.tags.map(tag => `<li><a href="#">${tag}</a></li>`).join('')}
-              </ul>
-            </div>
+            <h4>Error</h4>
+            <p>Error loading blog. Please try again later. <a href="blogs.html">Return to blog list</a></p>
           </div>
         `;
       }
