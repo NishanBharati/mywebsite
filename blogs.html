@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Blog Post - Nishan</title>
+  <title>Blog - Nishan</title>
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
   <meta content="" name="keywords">
   <meta content="" name="description">
@@ -24,12 +24,50 @@
   <!-- Main Stylesheet File -->
   <link href="css/style.css" rel="stylesheet">
 
-  <!-- =======================================================
-    Theme Name: DevFolio
-    Theme URL: https://bootstrapmade.com/devfolio-bootstrap-portfolio-html-template/
-    Author: BootstrapMade.com
-    License: https://bootstrapmade.com/license/
-  ======================================================= -->
+  <style>
+    .blog-card {
+      margin-bottom: 30px;
+      transition: transform 0.3s;
+      cursor: pointer;
+    }
+    .blog-card:hover {
+      transform: translateY(-5px);
+    }
+    .blog-thumbnail {
+      width: 100%;
+      height: 250px;
+      object-fit: cover;
+      border-radius: 5px;
+    }
+    .blog-meta {
+      color: #999;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    .blog-excerpt {
+      color: #666;
+      margin-bottom: 15px;
+    }
+    .admin-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #0078ff;
+      color: white;
+      padding: 15px 25px;
+      border-radius: 50px;
+      text-decoration: none;
+      box-shadow: 0 4px 15px rgba(0, 120, 255, 0.4);
+      transition: all 0.3s;
+      z-index: 1000;
+    }
+    .admin-btn:hover {
+      background: #0056b3;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 120, 255, 0.5);
+    }
+  </style>
 </head>
 
 <body>
@@ -72,15 +110,12 @@
     <div class="intro-content display-table">
       <div class="table-cell">
         <div class="container">
-          <h2 class="intro-title mb-4" id="page-title">Blog Details</h2>
+          <h2 class="intro-title mb-4">Blog</h2>
           <ol class="breadcrumb d-flex justify-content-center">
             <li class="breadcrumb-item">
               <a href="index.html">Home</a>
             </li>
-            <li class="breadcrumb-item">
-              <a href="blogs.html">Blog</a>
-            </li>
-            <li class="breadcrumb-item active" id="breadcrumb-title">Article</li>
+            <li class="breadcrumb-item active">Blog</li>
           </ol>
         </div>
       </div>
@@ -88,43 +123,27 @@
   </div>
   <!--/ Intro Skew End /-->
 
-  <!--/ Section Blog-Single Star /-->
+  <!--/ Section Blog Star /-->
   <section class="blog-wrapper sect-pt4" id="blog">
     <div class="container">
       <div class="row">
-        <div class="col-md-10 offset-md-1">
-          <div class="post-box" id="blog-content-area">
-            <div class="post-thumb">
-              <img src="img/post-1.jpg" class="img-fluid" id="blog-image" alt="">
-            </div>
-            <div class="post-meta">
-              <h1 class="article-title" id="blog-title">Loading...</h1>
-              <ul>
-                <li>
-                  <span class="ion-ios-person"></span>
-                  <span id="blog-author">Author</span>
-                </li>
-                <li>
-                  <span class="ion-calendar"></span>
-                  <span id="blog-date">Date</span>
-                </li>
-              </ul>
-            </div>
-            <div class="article-content" id="blog-content">
-              <p>Loading blog content...</p>
-            </div>
-            <div id="blog-tags-section" style="margin-top: 30px;">
-              <!-- Tags will be loaded here -->
-            </div>
-            <div style="margin-top: 40px;">
-              <a href="blogs.html" class="btn btn-primary">← Back to All Blogs</a>
+        <div class="col-md-12">
+          <div id="blogs-container" class="row">
+            <!-- Blogs will be loaded here dynamically -->
+            <div class="col-12 text-center">
+              <p>Loading blogs...</p>
             </div>
           </div>
         </div>
       </div>
     </div>
   </section>
-  <!--/ Section Blog-Single End /-->
+  <!--/ Section Blog End /-->
+
+  <!-- Admin Button -->
+  <a href="#" class="admin-btn" onclick="checkAdminPassword(event)">
+    <i class="fa fa-lock"></i> Admin
+  </a>
 
   <!--/ Section Contact-Footer Star /-->
   <section class="paralax-mf footer-paralax bg-image sect-mt4 route" style="background-image: url(img/overlay-bg.jpg)">
@@ -163,74 +182,64 @@
 
   <!-- Blog Loading Script -->
   <script>
-    // Get blog ID from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const blogId = urlParams.get('id');
-
-    function loadBlog() {
-      if (!blogId) {
-        document.getElementById('blog-content-area').innerHTML = `
-          <div class="alert alert-warning">
-            <h4>Blog not found</h4>
-            <p>No blog ID specified. <a href="blogs.html">Return to blog list</a></p>
-          </div>
-        `;
-        return;
-      }
-
+    // Load blogs from localStorage
+    function loadBlogs() {
+      const blogsContainer = document.getElementById('blogs-container');
       const blogs = JSON.parse(localStorage.getItem('blogs') || '[]');
-      const blog = blogs.find(b => b.id === blogId);
-
-      if (!blog) {
-        document.getElementById('blog-content-area').innerHTML = `
-          <div class="alert alert-danger">
-            <h4>Blog not found</h4>
-            <p>The requested blog post could not be found. <a href="blogs.html">Return to blog list</a></p>
+      
+      if (blogs.length === 0) {
+        blogsContainer.innerHTML = `
+          <div class="col-12 text-center">
+            <p style="color: #999; font-size: 18px; padding: 50px 0;">No blogs available yet. Check back soon!</p>
           </div>
         `;
         return;
       }
 
-      // Update page title
-      document.title = blog.title + ' - Nishan';
-      
-      // Update breadcrumb
-      document.getElementById('breadcrumb-title').textContent = blog.title.substring(0, 30) + (blog.title.length > 30 ? '...' : '');
+      // Sort blogs by date (newest first)
+      blogs.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-      // Update blog content
-      document.getElementById('blog-image').src = blog.image || 'img/post-1.jpg';
-      document.getElementById('blog-image').alt = blog.title;
-      document.getElementById('blog-title').textContent = blog.title;
-      document.getElementById('blog-author').textContent = blog.author || 'Admin';
-      document.getElementById('blog-date').textContent = new Date(blog.date).toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      });
-
-      // Format content with paragraphs
-      const contentHTML = blog.content.split('\n').map(para => 
-        para.trim() ? `<p>${para.trim()}</p>` : ''
-      ).join('');
-      document.getElementById('blog-content').innerHTML = contentHTML;
-
-      // Display tags if available
-      if (blog.tags && blog.tags.length > 0) {
-        document.getElementById('blog-tags-section').innerHTML = `
-          <div class="widget-tags">
-            <h5>Tags:</h5>
-            <div class="sidebar-content">
-              <ul>
-                ${blog.tags.map(tag => `<li><a href="#">${tag}</a></li>`).join('')}
-              </ul>
+      blogsContainer.innerHTML = blogs.map(blog => `
+        <div class="col-md-4">
+          <div class="card blog-card" onclick="window.location.href='blog-single.html?id=${blog.id}'">
+            <img src="${blog.image || 'img/post-1.jpg'}" alt="${blog.title}" class="blog-thumbnail">
+            <div class="card-body">
+              <h5 class="card-title">${blog.title}</h5>
+              <div class="blog-meta">
+                <i class="fa fa-calendar"></i> ${new Date(blog.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                <span style="margin-left: 15px;"><i class="fa fa-user"></i> ${blog.author || 'Admin'}</span>
+              </div>
+              <p class="blog-excerpt">${blog.excerpt || blog.content.substring(0, 150) + '...'}</p>
+              <a href="blog-single.html?id=${blog.id}" class="btn btn-primary btn-sm">Read More</a>
             </div>
           </div>
-        `;
-      }
+        </div>
+      `).join('');
     }
 
-    // Load blog when page loads
-    document.addEventListener('DOMContentLoaded', loadBlog);
+    // Load blogs when page loads
+    document.addEventListener('DOMContentLoaded', loadBlogs);
+
+    // Admin password check function
+    function checkAdminPassword(event) {
+      event.preventDefault();
+      
+      const password = prompt('Please enter admin password:');
+      const ADMIN_PASSWORD = '9813796949'; // Change this to your desired password
+      
+      if (password === null) {
+        // User clicked cancel
+        return;
+      }
+      
+      if (password === ADMIN_PASSWORD) {
+        // Correct password - redirect to admin page
+        window.location.href = 'admin-blog.html';
+      } else {
+        // Wrong password
+        alert('Incorrect password! Access denied.');
+      }
+    }
   </script>
 
 </body>
