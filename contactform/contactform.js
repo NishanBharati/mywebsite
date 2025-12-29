@@ -98,18 +98,23 @@ jQuery(document).ready(function($) {
       type: "POST",
       url: action,
       data: str,
-      success: function(msg) {
-        // alert(msg);
-        if (msg == 'OK') {
+      dataType: 'json',
+      success: function(response) {
+        // Handle Web3Forms JSON response
+        if (response.success) {
           $("#sendmessage").addClass("show");
           $("#errormessage").removeClass("show");
           $('.contactForm').find("input, textarea").val("");
         } else {
           $("#sendmessage").removeClass("show");
           $("#errormessage").addClass("show");
-          $('#errormessage').html(msg);
+          $('#errormessage').html(response.message || 'Error sending message. Please try again.');
         }
-
+      },
+      error: function(xhr, status, error) {
+        $("#sendmessage").removeClass("show");
+        $("#errormessage").addClass("show");
+        $('#errormessage').html('Error sending message. Please try again.');
       }
     });
     return false;
